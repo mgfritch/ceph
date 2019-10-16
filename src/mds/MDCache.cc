@@ -280,13 +280,20 @@ bool MDCache::shutdown()
 
 void MDCache::add_inode(CInode *in) 
 {
+  bool allow_dup_inos = false; // TODO: add a g_conf setting?
+
+  if (have_inode(in->vino())) {
+    dout(0) << "WARNING: mdcache already has inode " << *in << dendl;
+  }
+
   // add to lru, inode map
   if (in->last == CEPH_NOSNAP) {
     auto &p = inode_map[in->ino()];
-    assert(!p); // should be no dup inos!
+    (allow_dup_inos) ? assert_warn(!p) : assert(!p); // should be no dup inos!
     p = in;
   } else {
     auto &p = snap_inode_map[in->vino()];
+    (allow_dup_inos) ? assert_warn(!p) : assert(!p); // should be no dup inos!
     assert(!p); // should be no dup inos!
     p = in;
   }

@@ -2699,7 +2699,8 @@ CInode* Server::prepare_new_inode(MDRequestRef& mdr, CDir *dir, inodeno_t useino
   // state. In that corner case, session's prealloc_inos are being freed.
   // To simplify the code, we disallow using/refilling session's prealloc_ino
   // while session is opening.
-  bool allow_prealloc_inos = !mdr->session->is_opening();
+  bool allow_prealloc_inos = !mdr->session->is_opening(); // TODO: set this to false to avoid dup inos?
+  auto dout_lvl = 10;
 
   // assign ino
   if (allow_prealloc_inos &&
@@ -2708,14 +2709,16 @@ CInode* Server::prepare_new_inode(MDRequestRef& mdr, CDir *dir, inodeno_t useino
       in->inode.ino = mdr->session->take_ino(useino);  // prealloc -> used
     mds->sessionmap.mark_projected(mdr->session);
 
-    dout(10) << "prepare_new_inode used_prealloc " << mdr->used_prealloc_ino
-	     << " (" << mdr->session->info.prealloc_inos
-	     << ", " << mdr->session->info.prealloc_inos.size() << " left)"
-	     << dendl;
+    dout_lvl = (mdcache->have_inode(in->vino())) ? 0 : 10;
+    dout(dout_lvl) << "prepare_new_inode used_prealloc " << mdr->used_prealloc_ino
+                   << " (" << mdr->session->info.prealloc_inos
+                   << ", " << mdr->session->info.prealloc_inos.size() << " left)"
+                   << dendl;
   } else {
+    dout_lvl = (mdcache->have_inode(in->vino())) ? 0 : 10;
     mdr->alloc_ino = 
       in->inode.ino = mds->inotable->project_alloc_id();
-    dout(10) << "prepare_new_inode alloc " << mdr->alloc_ino << dendl;
+    dout(dout_lvl) << "prepare_new_inode alloc " << mdr->alloc_ino << dendl;
   }
 
   if (useino && useino != in->inode.ino) {
@@ -2725,7 +2728,7 @@ CInode* Server::prepare_new_inode(MDRequestRef& mdr, CDir *dir, inodeno_t useino
        << " but mds." << mds->get_nodeid() << " allocated " << in->inode.ino;
     //ceph_abort(); // just for now.
   }
-    
+
   if (allow_prealloc_inos &&
       mdr->session->get_num_projected_prealloc_inos() < g_conf->mds_client_prealloc_inos / 2) {
     int need = g_conf->mds_client_prealloc_inos - mdr->session->get_num_projected_prealloc_inos();
@@ -2733,7 +2736,7 @@ CInode* Server::prepare_new_inode(MDRequestRef& mdr, CDir *dir, inodeno_t useino
     assert(mdr->prealloc_inos.size());  // or else fix projected increment semantics
     mdr->session->pending_prealloc_inos.insert(mdr->prealloc_inos);
     mds->sessionmap.mark_projected(mdr->session);
-    dout(10) << "prepare_new_inode prealloc " << mdr->prealloc_inos << dendl;
+    dout(dout_lvl) << "prepare_new_inode prealloc " << mdr->prealloc_inos << dendl;
   }
 
   in->inode.version = 1;
