@@ -416,6 +416,8 @@ else
         $SUDO $zypp_install systemd-rpm-macros
         munge_ceph_spec_in $with_seastar $for_make_check $DIR/ceph.spec
         $SUDO $zypp_install $(rpmspec -q --buildrequires $DIR/ceph.spec) || exit 1
+        # for building wheel packages with python2
+        $SUDO $zypp_install python-devel
         ;;
     alpine)
         # for now we need the testing repo for leveldb
