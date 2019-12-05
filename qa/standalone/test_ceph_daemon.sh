@@ -53,9 +53,12 @@ if [ -z "$PYTHON_KLUDGE" ]; then
    exit 0
 fi
 
+ARGS="--image $IMAGE_MASTER"
+#ARGS="$ARGS -v"
+
 # clean up previous run(s)?
-$SUDO $CEPH_DAEMON rm-cluster --fsid $FSID --force
-$SUDO $CEPH_DAEMON rm-cluster --fsid $FSID_LEGACY --force
+$SUDO $CEPH_DAEMON $ARGS rm-cluster --fsid $FSID --force
+$SUDO $CEPH_DAEMON $ARGS rm-cluster --fsid $FSID_LEGACY --force
 vgchange -an $OSD_VG_NAME || true
 loopdev=$($SUDO losetup -a | grep $(basename $OSD_IMAGE_NAME) | awk -F : '{print $1}')
 if ! [ "$loopdev" = "" ]; then
@@ -79,11 +82,11 @@ $SUDO $CEPH_DAEMON --image $IMAGE_MIMIC version \
 $SUDO $CEPH_DAEMON --image $IMAGE_MASTER version | grep 'ceph version'
 
 # try force docker; this won't work if docker isn't installed
-which docker && ( $SUDO $CEPH_DAEMON --docker version | grep 'ceph version' )
+which docker && ( $SUDO $CEPH_DAEMON $ARGS --docker version | grep 'ceph version' )
 
 ## test shell before bootstrap, when crash dir isn't (yet) present on this host
-$SUDO $CEPH_DAEMON shell -- ceph -v | grep 'ceph version'
-$SUDO $CEPH_DAEMON shell --fsid $FSID -- ceph -v | grep 'ceph version'
+$SUDO $CEPH_DAEMON $ARGS shell -- ceph -v | grep 'ceph version'
+$SUDO $CEPH_DAEMON $ARGS shell --fsid $FSID -- ceph -v | grep 'ceph version'
 
 ## bootstrap
 ORIG_CONFIG=`mktemp -p $TMPDIR`
@@ -94,7 +97,7 @@ cat <<EOF > $ORIG_CONFIG
 [global]
 log to file = true
 EOF
-$SUDO $CEPH_DAEMON --image $IMAGE_MASTER bootstrap \
+$SUDO $CEPH_DAEMON $ARGS bootstrap \
       --mon-id a \
       --mgr-id x \
       --mon-ip $IP \
@@ -120,18 +123,18 @@ done
 systemctl | grep system-ceph | grep -q .slice  # naming is escaped and annoying
 
 # check ceph -s works (via shell w/ passed config/keyring)
-$SUDO $CEPH_DAEMON shell --fsid $FSID --config $CONFIG --keyring $KEYRING -- \
+$SUDO $CEPH_DAEMON $ARGS shell --fsid $FSID --config $CONFIG --keyring $KEYRING -- \
       ceph -s | grep $FSID
 
 ## ls
-$SUDO $CEPH_DAEMON ls | jq '.[]' | jq 'select(.name == "mon.a").fsid' \
+$SUDO $CEPH_DAEMON $ARGS ls | jq '.[]' | jq 'select(.name == "mon.a").fsid' \
     | grep $FSID
-$SUDO $CEPH_DAEMON ls | jq '.[]' | jq 'select(.name == "mgr.x").fsid' \
+$SUDO $CEPH_DAEMON $ARGS ls | jq '.[]' | jq 'select(.name == "mgr.x").fsid' \
     | grep $FSID
 
 ## deploy
 # add mon.b
-$SUDO $CEPH_DAEMON --image $IMAGE_MASTER deploy --name mon.b \
+$SUDO $CEPH_DAEMON $ARGS deploy --name mon.b \
       --fsid $FSID \
       --mon-ip $IP:3301 \
       --keyring /var/lib/ceph/$FSID/mon.a/keyring \
@@ -142,12 +145,12 @@ for u in ceph-$FSID@mon.b; do
 done
 
 # add mgr.y
-$SUDO $CEPH_DAEMON shell --fsid $FSID --config $CONFIG --keyring $KEYRING -- \
+$SUDO $CEPH_DAEMON $ARGS shell --fsid $FSID --config $CONFIG --keyring $KEYRING -- \
       ceph auth get-or-create mgr.y \
       mon 'allow profile mgr' \
       osd 'allow *' \
       mds 'allow *' > $TMPDIR/keyring.mgr.y
-$SUDO $CEPH_DAEMON --image $IMAGE_MASTER deploy --name mgr.y \
+$SUDO $CEPH_DAEMON $ARGS deploy --name mgr.y \
       --fsid $FSID \
       --keyring $TMPDIR/keyring.mgr.y \
       --config $CONFIG
@@ -156,13 +159,13 @@ for u in ceph-$FSID@mgr.y; do
     systemctl is-active $u
 done
 for f in `seq 1 30`; do
-    if $SUDO $CEPH_DAEMON shell --fsid $FSID \
+    if $SUDO $CEPH_DAEMON $ARGS shell --fsid $FSID \
 	     --config $CONFIG --keyring $KEYRING -- \
 	  ceph -s -f json-pretty \
 	| jq '.mgrmap.num_standbys' | grep -q 1 ; then break; fi
     sleep 1
 done
-$SUDO $CEPH_DAEMON shell --fsid $FSID --config $CONFIG --keyring $KEYRING -- \
+$SUDO $CEPH_DAEMON $ARGS shell --fsid $FSID --config $CONFIG --keyring $KEYRING -- \
       ceph -s -f json-pretty \
     | jq '.mgrmap.num_standbys' | grep -q 1
 
@@ -174,7 +177,7 @@ $SUDO losetup $loop_dev $TMPDIR/$OSD_IMAGE_NAME
 $SUDO pvcreate $loop_dev && $SUDO vgcreate $OSD_VG_NAME $loop_dev
 for id in `seq 0 $((--OSD_TO_CREATE))`; do
     $SUDO lvcreate -l $((100/$OSD_TO_CREATE))%VG -n $OSD_LV_NAME.$id $OSD_VG_NAME
-    $SUDO $CEPH_DAEMON shell --config $CONFIG --keyring $KEYRING -- \
+    $SUDO $CEPH_DAEMON $ARGS shell --config $CONFIG --keyring $KEYRING -- \
             ceph orchestrator osd create \
                 $(hostname):/dev/$OSD_VG_NAME/$OSD_LV_NAME.$id
 done
@@ -186,61 +189,61 @@ done
 for tarball in $TEST_TARS; do
     TMP_TAR_DIR=`mktemp -d -p $TMPDIR`
     $SUDO tar xzvf $tarball -C $TMP_TAR_DIR
-    NAMES=$($SUDO $CEPH_DAEMON ls --legacy-dir $TMP_TAR_DIR | jq -r '.[].name')
+    NAMES=$($SUDO $CEPH_DAEMON $ARGS ls --legacy-dir $TMP_TAR_DIR | jq -r '.[].name')
     for name in $NAMES; do
         # TODO: skip osd test for now
         if [[ $name =~ "osd" ]]; then
            continue
         fi
-        $SUDO $CEPH_DAEMON --image $IMAGE_MASTER adopt \
+        $SUDO $CEPH_DAEMON $ARGS adopt \
                            --style legacy \
                            --legacy-dir $TMP_TAR_DIR \
                            --name $name
         # validate after adopt
-        out=$($SUDO $CEPH_DAEMON ls | jq '.[]' \
+        out=$($SUDO $CEPH_DAEMON $ARGS ls | jq '.[]' \
                                     | jq 'select(.name == "'$name'")')
         echo $out | jq -r '.style' | grep 'ceph-daemon'
         echo $out | jq -r '.fsid' | grep $FSID_LEGACY
     done
     # clean-up before next iter
-    $SUDO $CEPH_DAEMON rm-cluster --fsid $FSID_LEGACY --force
+    $SUDO $CEPH_DAEMON $ARGS rm-cluster --fsid $FSID_LEGACY --force
     $SUDO rm -rf $TMP_TAR_DIR
 done
 
 ## unit
-$SUDO $CEPH_DAEMON unit --fsid $FSID --name mon.a -- is-enabled
-$SUDO $CEPH_DAEMON unit --fsid $FSID --name mon.a -- is-active
-expect_false $SUDO $CEPH_DAEMON unit --fsid $FSID --name mon.xyz -- is-active
-$SUDO $CEPH_DAEMON unit --fsid $FSID --name mon.a -- disable
-expect_false $SUDO $CEPH_DAEMON unit --fsid $FSID --name mon.a -- is-enabled
-$SUDO $CEPH_DAEMON unit --fsid $FSID --name mon.a -- enable
-$SUDO $CEPH_DAEMON unit --fsid $FSID --name mon.a -- is-enabled
+$SUDO $CEPH_DAEMON $ARGS unit --fsid $FSID --name mon.a -- is-enabled
+$SUDO $CEPH_DAEMON $ARGS unit --fsid $FSID --name mon.a -- is-active
+expect_false $SUDO $CEPH_DAEMON $ARGS unit --fsid $FSID --name mon.xyz -- is-active
+$SUDO $CEPH_DAEMON $ARGS unit --fsid $FSID --name mon.a -- disable
+expect_false $SUDO $CEPH_DAEMON $ARGS unit --fsid $FSID --name mon.a -- is-enabled
+$SUDO $CEPH_DAEMON $ARGS unit --fsid $FSID --name mon.a -- enable
+$SUDO $CEPH_DAEMON $ARGS unit --fsid $FSID --name mon.a -- is-enabled
 
 ## shell
-$SUDO $CEPH_DAEMON --image $IMAGE_MASTER shell -- true
-$SUDO $CEPH_DAEMON --image $IMAGE_MASTER shell --fsid $FSID -- test -d /var/log/ceph
+$SUDO $CEPH_DAEMON $ARGS shell -- true
+$SUDO $CEPH_DAEMON $ARGS shell --fsid $FSID -- test -d /var/log/ceph
 
 ## enter
-expect_false $SUDO $CEPH_DAEMON enter
-$SUDO $CEPH_DAEMON enter --fsid $FSID --name mon.a -- test -d /var/lib/ceph/mon/ceph-a
-$SUDO $CEPH_DAEMON enter --fsid $FSID --name mgr.x -- test -d /var/lib/ceph/mgr/ceph-x
-$SUDO $CEPH_DAEMON enter --fsid $FSID --name mon.a -- pidof ceph-mon
-expect_false $SUDO $CEPH_DAEMON enter --fsid $FSID --name mgr.x -- pidof ceph-mon
-$SUDO $CEPH_DAEMON enter --fsid $FSID --name mgr.x -- pidof ceph-mgr
+expect_false $SUDO $CEPH_DAEMON $ARGS enter
+$SUDO $CEPH_DAEMON $ARGS enter --fsid $FSID --name mon.a -- test -d /var/lib/ceph/mon/ceph-a
+$SUDO $CEPH_DAEMON $ARGS enter --fsid $FSID --name mgr.x -- test -d /var/lib/ceph/mgr/ceph-x
+$SUDO $CEPH_DAEMON $ARGS enter --fsid $FSID --name mon.a -- pidof ceph-mon
+expect_false $SUDO $CEPH_DAEMON $ARGS enter --fsid $FSID --name mgr.x -- pidof ceph-mon
+$SUDO $CEPH_DAEMON $ARGS enter --fsid $FSID --name mgr.x -- pidof ceph-mgr
 
 ## ceph-volume
-$SUDO $CEPH_DAEMON --image $IMAGE_MASTER ceph-volume --fsid $FSID -- inventory --format=json \
+$SUDO $CEPH_DAEMON $ARGS ceph-volume --fsid $FSID -- inventory --format=json \
       | jq '.[]'
 
 ## rm-daemon
 # mon and osd require --force
-expect_false $SUDO $CEPH_DAEMON rm-daemon --fsid $FSID --name mon.a
+expect_false $SUDO $CEPH_DAEMON $ARGS rm-daemon --fsid $FSID --name mon.a
 # mgr does not
-$SUDO $CEPH_DAEMON rm-daemon --fsid $FSID --name mgr.x
+$SUDO $CEPH_DAEMON $ARGS rm-daemon --fsid $FSID --name mgr.x
 
 ## rm-cluster
-expect_false $SUDO $CEPH_DAEMON rm-cluster --fsid $FSID
-$SUDO $CEPH_DAEMON rm-cluster --fsid $FSID --force
+expect_false $SUDO $CEPH_DAEMON $ARGS rm-cluster --fsid $FSID
+$SUDO $CEPH_DAEMON $ARGS rm-cluster --fsid $FSID --force
 
 rm -rf $TMPDIR
 echo PASS
