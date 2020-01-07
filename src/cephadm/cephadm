@@ -924,6 +924,12 @@ def get_container_mounts(fsid, daemon_type, daemon_id):
 
     return mounts
 
+def replace_container_mount(mounts, host_dir, container_dir):
+    # type: (Dict[str, str], str, str) -> Dict[str, str]
+    mounts = {k:v for k,v in mounts.items() if v != container_dir}
+    mounts[host_dir] = container_dir
+    return mounts
+
 def get_container(fsid, daemon_type, daemon_id, privileged=False,
                   container_args=[]):
     # type: (str, str, Union[int, str], bool, List[str]) -> CephContainer
@@ -1863,9 +1869,13 @@ def command_shell():
         daemon_id = None
     mounts = get_container_mounts(args.fsid, daemon_type, daemon_id)
     if args.config:
-        mounts[pathify(args.config)] = '/etc/ceph/ceph.conf:z'
+        host_dir = pathify(args.config)
+        container_dir = '/etc/ceph/ceph.conf:z'
+        mounts = replace_container_mount(mounts, host_dir, container_dir)
     if args.keyring:
-        mounts[pathify(args.keyring)] = '/etc/ceph/ceph.keyring:z'
+        host_dir = pathify(args.keyring)
+        container_dir = '/etc/ceph/ceph.keyring:z'
+        mounts = replace_container_mount(mounts, host_dir, container_dir)
     container_args = ['--privileged']
     if args.command:
         command = args.command
