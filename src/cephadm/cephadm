@@ -213,6 +213,7 @@ class NFSGanesha(object):
         mounts[os.path.join(data_dir, 'config')] = '/etc/ceph/ceph.conf:z'
         mounts[os.path.join(data_dir, 'keyring')] = '/etc/ceph/keyring:z'
         mounts[os.path.join(data_dir, 'etc/ganesha')] = '/etc/ganesha'
+        mounts['/run/dbus/system_bus_socket'] = '/run/dbus/system_bus_socket'
         return mounts
 
     @staticmethod
