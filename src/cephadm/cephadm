@@ -3008,6 +3008,17 @@ def check_rpcbind(enabler=None):
         return False
     return True
 
+def check_dbus(enabler=None):
+    # type: (Optional[Packager]) -> bool
+    units = [
+        'dbus.socket',
+    ]
+    if not check_units(units, enabler=enabler):
+        logger.warning('No dbus service is running; checked for %s' % units)
+        return False
+    return True
+
+
 def command_check_host():
     # caller already checked for docker/podman
     logger.info('podman|docker (%s) is present' % container_path)
@@ -3028,6 +3039,10 @@ def command_check_host():
     # check for configured+running rpcbind
     if not check_rpcbind():
         raise Error('rpcbind is not active')
+
+    # check for configured+running dbus
+    if not check_dbus():
+        raise Error('dbus is not active')
 
     if 'expect_hostname' in args and args.expect_hostname:
         if get_hostname() != args.expect_hostname:
@@ -3071,6 +3086,15 @@ def command_prepare_host():
         # check again, and this time try to enable
         # the service
         check_rpcbind(enabler=pkg)
+
+    logger.info('Verifying dbus...')
+    if not check_dbus():
+        if not pkg:
+            pkg = create_packager()
+        pkg.install(['dbus-1'])
+        # check again, and this time try to enable
+        # the service
+        check_dbus(enabler=pkg)
 
     if 'expect_hostname' in args and args.expect_hostname and args.expect_hostname != get_hostname():
         logger.warning('Adjusting hostname from %s -> %s...' % (get_hostname(), args.expect_hostname))
