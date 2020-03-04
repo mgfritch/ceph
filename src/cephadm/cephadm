@@ -2998,6 +2998,16 @@ def check_time_sync(enabler=None):
         return False
     return True
 
+def check_rpcbind(enabler=None):
+    # type: (Optional[Packager]) -> bool
+    units = [
+        'rpcbind.service',
+    ]
+    if not check_units(units, enabler=enabler):
+        logger.warning('No rpcbind service is running; checked for %s' % units)
+        return False
+    return True
+
 def command_check_host():
     # caller already checked for docker/podman
     logger.info('podman|docker (%s) is present' % container_path)
@@ -3014,6 +3024,10 @@ def command_check_host():
     # check for configured+running chronyd or ntp
     if not check_time_sync():
         raise Error('No time synchronization is active')
+
+    # check for configured+running rpcbind
+    if not check_rpcbind():
+        raise Error('rpcbind is not active')
 
     if 'expect_hostname' in args and args.expect_hostname:
         if get_hostname() != args.expect_hostname:
@@ -3048,6 +3062,15 @@ def command_prepare_host():
         # check again, and this time try to enable
         # the service
         check_time_sync(enabler=pkg)
+
+    logger.info('Verifying rpcbind...')
+    if not check_rpcbind():
+        if not pkg:
+            pkg = create_packager()
+        pkg.install(['rpcbind'])
+        # check again, and this time try to enable
+        # the service
+        check_rpcbind(enabler=pkg)
 
     if 'expect_hostname' in args and args.expect_hostname and args.expect_hostname != get_hostname():
         logger.warning('Adjusting hostname from %s -> %s...' % (get_hostname(), args.expect_hostname))
