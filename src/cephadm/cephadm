@@ -3020,6 +3020,7 @@ def check_dbus(enabler=None):
 
 
 def command_check_host():
+    # type: () -> None
     # caller already checked for docker/podman
     logger.info('podman|docker (%s) is present' % container_path)
 
@@ -3056,6 +3057,7 @@ def command_check_host():
 ##################################
 
 def command_prepare_host():
+    # type: () -> None
     logger.info('Verifying podman|docker is present...')
     pkg = None
     if not container_path:
@@ -3103,7 +3105,7 @@ def command_prepare_host():
             f.write(args.expect_hostname + '\n')
 
     logger.info('Repeating the final host check...')
-    return command_check_host()
+    command_check_host()
 
 ##################################
 
