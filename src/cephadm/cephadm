@@ -239,6 +239,56 @@ class NFSGanesha(object):
                 if fname not in self.files:
                     raise Error('required file missing from config-json: %s' % fname)
 
+    ##################################
+
+    @staticmethod
+    def check_host():
+        # type: () -> None
+
+        # TODO: assumes caller already checked for systemctl
+        logger.info('Check host for daemon type: %s' % (NFSGanesha.daemon_type))
+
+        # check for configured+running rpcbind
+        if not check_rpcbind():
+            raise Error('rpcbind is not active')
+
+        # check for configured+running dbus
+        if not check_dbus():
+            raise Error('dbus is not active')
+
+        logger.info('Host looks OK for daemon type: %s' % (NFSGanesha.daemon_type))
+
+    ##################################
+
+    @staticmethod
+    def prepare_host():
+        # type: () -> None
+        logger.info('Prepare host for daemon type: %s' % (NFSGanesha.daemon_type))
+        pkg = None
+
+        logger.info('Verifying rpcbind...')
+        if not check_rpcbind():
+            if not pkg:
+                pkg = create_packager()
+            pkg.install(['rpcbind'])
+            # check again, and this time try to enable
+            # the service
+            check_rpcbind(enabler=pkg)
+
+        logger.info('Verifying dbus...')
+        if not check_dbus():
+            if not pkg:
+                pkg = create_packager()
+            pkg.install(['dbus-1'])
+            # check again, and this time try to enable
+            # the service
+            check_dbus(enabler=pkg)
+
+        logger.info('Repeating the final host check...')
+        NFSGanesha.check_host()
+
+    ##################################
+
     def get_daemon_name(self):
         # type: () -> str
         return '%s.%s' % (self.daemon_type, self.daemon_id)
@@ -2384,6 +2434,7 @@ def command_deploy():
                       reconfig=args.reconfig)
 
     elif daemon_type == NFSGanesha.daemon_type:
+        NFSGanesha.check_host()
         NFSGanesha.port_in_use()
         (config, keyring) = get_config_and_keyring()
         # TODO: extract ganesha uid/gid (997, 994) ?
@@ -3037,13 +3088,8 @@ def command_check_host():
     if not check_time_sync():
         raise Error('No time synchronization is active')
 
-    # check for configured+running rpcbind
-    if not check_rpcbind():
-        raise Error('rpcbind is not active')
-
-    # check for configured+running dbus
-    if not check_dbus():
-        raise Error('dbus is not active')
+    # check for nfs related deps
+    NFSGanesha.check_host()
 
     if 'expect_hostname' in args and args.expect_hostname:
         if get_hostname() != args.expect_hostname:
@@ -3080,23 +3126,8 @@ def command_prepare_host():
         # the service
         check_time_sync(enabler=pkg)
 
-    logger.info('Verifying rpcbind...')
-    if not check_rpcbind():
-        if not pkg:
-            pkg = create_packager()
-        pkg.install(['rpcbind'])
-        # check again, and this time try to enable
-        # the service
-        check_rpcbind(enabler=pkg)
-
-    logger.info('Verifying dbus...')
-    if not check_dbus():
-        if not pkg:
-            pkg = create_packager()
-        pkg.install(['dbus-1'])
-        # check again, and this time try to enable
-        # the service
-        check_dbus(enabler=pkg)
+    # prepare nfs related deps
+    NFSGanesha.prepare_host()
 
     if 'expect_hostname' in args and args.expect_hostname and args.expect_hostname != get_hostname():
         logger.warning('Adjusting hostname from %s -> %s...' % (get_hostname(), args.expect_hostname))
