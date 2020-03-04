@@ -170,6 +170,8 @@ class NFSGanesha(object):
         "nfs" : 2049,
     }
 
+    dbus_conf='/etc/dbus-1/system.d/org.ganesha.nfsd.conf'
+
     def __init__(self,
                  fsid,
                  daemon_id,
@@ -256,6 +258,10 @@ class NFSGanesha(object):
         if not check_dbus():
             raise Error('dbus is not active')
 
+        fname = NFSGanesha.dbus_conf
+        if not os.path.exists(fname):
+            raise Error('missing dbus config: %s' % (fname))
+
         logger.info('Host looks OK for daemon type: %s' % (NFSGanesha.daemon_type))
 
     ##################################
@@ -283,6 +289,16 @@ class NFSGanesha(object):
             # check again, and this time try to enable
             # the service
             check_dbus(enabler=pkg)
+
+        logger.info('Verifying dbus config...')
+        fname = NFSGanesha.dbus_conf
+        if not os.path.exists(fname):
+            # export the dbus config
+            fcontent = read_container_file(fname)
+            logger.info('Writing dbus config: %s' % (fname))
+            with open(fname, 'w') as f:
+                os.fchmod(f.fileno(), 0o644)
+                f.write(fcontent)
 
         logger.info('Repeating the final host check...')
         NFSGanesha.check_host()
@@ -1518,6 +1534,17 @@ def extract_uid_gid(img='', file_path='/var/lib/ceph'):
     ).run()
     (uid, gid) = out.split(' ')
     return (int(uid), int(gid))
+
+def read_container_file(fname, image=DEFAULT_IMAGE):
+    # type: (str, str) -> str
+    logger.debug('extracting container file: %s' % (fname))
+    out = CephContainer(
+        image=image,
+        entrypoint='cat',
+        args=[fname],
+        cname='extract-container-file'
+    ).run()
+    return out
 
 def deploy_daemon(fsid, daemon_type, daemon_id, c, uid, gid,
                   config=None, keyring=None,
