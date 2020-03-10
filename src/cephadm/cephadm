@@ -1694,7 +1694,13 @@ def command_version():
 def command_pull():
     # type: () -> int
     logger.info('Pulling latest %s...' % args.image)
-    call_throws([container_path, 'pull', args.image])
+    def pull_image():
+        # type: () -> bool
+        timeout=args.timeout if args.timeout else 60 # seconds
+        cmd = [container_path, 'pull', args.image]
+        out, err, ret = call(cmd, timeout=timeout)
+        return ret == 0
+    is_available('image pull', pull_image)
     return command_inspect_image()
 
 ##################################
