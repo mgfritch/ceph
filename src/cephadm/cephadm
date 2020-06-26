@@ -45,6 +45,7 @@ import json
 import logging
 import os
 import platform
+import pwd
 import random
 import re
 import select
@@ -2642,12 +2643,19 @@ def command_bootstrap():
             logger.info('Wrote public SSH key to to %s' % args.output_pub_ssh_key)
 
             logger.info('Adding key to %s@localhost\'s authorized_keys...' % args.ssh_user)
-            ssh_dir = pathify('~%s/.ssh' % (args.ssh_user))
+            try:
+                s_pwd = pwd.getpwnam(args.ssh_user)
+            except KeyError as e:
+                raise Error('Cannot find uid/gid for ssh-user: %s' % (args.ssh_user))
+            ssh_uid = s_pwd.pw_uid
+            ssh_gid = s_pwd.pw_gid
+            ssh_dir = os.path.join(s_pwd.pw_dir, '.ssh')
+
             if not os.path.exists(ssh_dir):
-                os.mkdir(ssh_dir, 0o700)
-                shutil.chown(ssh_dir, user=args.ssh_user, group=args.ssh_user)
+                makedirs(ssh_dir, uid, gid, 0o700)
             auth_keys_file = '%s/authorized_keys' % ssh_dir
             add_newline = False
+
             if os.path.exists(auth_keys_file):
                 with open(auth_keys_file, 'r') as f:
                     f.seek(0, os.SEEK_END)
@@ -2655,12 +2663,13 @@ def command_bootstrap():
                         f.seek(f.tell()-1, os.SEEK_SET) # go to last char
                         if f.read() != '\n':
                             add_newline = True
+
             with open(auth_keys_file, 'a') as f:
+                os.fchown(f.fileno(), uid, gid)
                 os.fchmod(f.fileno(), 0o600)  # just in case we created it
                 if add_newline:
                     f.write('\n')
                 f.write(ssh_pub.strip() + '\n')
-            shutil.chown(auth_keys_file, user=args.ssh_user, group=args.ssh_user)
 
         host = get_hostname()
         logger.info('Adding host %s...' % host)

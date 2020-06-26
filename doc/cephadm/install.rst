@@ -108,7 +108,7 @@ or run ``cephadm bootstrap -h`` to see all available options:
 * You can choose the ssh user cephadm will use to connect to hosts by
   using the ``--ssh-user *<user>*`` option. The ssh key will be added
   to ``/home/*<user>*/.ssh/authorized_keys``. This user will require
-  passwordless sudo access. 
+  passwordless sudo access.
 
 
 Enable Ceph CLI
@@ -376,4 +376,4 @@ See :ref:`orchestrator-cli-placement-spec` for details of the placement specific
 
 Deploying custom containers
 ===========================
-It is also possible to choose different containers than the default containers to deploy Ceph. See :ref:`containers` for information about your options in this regard. 
+It is also possible to choose different containers than the default containers to deploy Ceph. See :ref:`containers` for information about your options in this regard.

@@ -64,7 +64,7 @@ Synopsis
 |                           [--dashboard-crt DASHBOARD_CRT]
 |                           [--ssh-config SSH_CONFIG]
 |                           [--ssh-private-key SSH_PRIVATE_KEY]
-|                           [--ssh-public-key SSH_PUBLIC_KEY] 
+|                           [--ssh-public-key SSH_PUBLIC_KEY]
 |                           [--ssh-user SSH_USER] [--skip-mon-network]
 |                           [--skip-dashboard] [--dashboard-password-noupdate]
 |                           [--no-minimize-config] [--skip-ping-check]
