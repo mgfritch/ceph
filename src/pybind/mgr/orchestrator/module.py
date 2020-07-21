@@ -1544,3 +1544,14 @@ Usage:
         self._orchestrator_wait([completion])
         raise_if_exception(completion)
         return HandleCommandResult(stdout=completion.result_str())
+
+    @_cli_write_command(
+        'orch ok-to-stop',
+        "name=daemon_type,type=CephString "
+        "name=daemon_ids,type=CephString,n=N",
+        desc='Check if the specified daemons can be safely stopped without reducing availability')
+    def _ok_to_stop(self, daemon_type: str, daemon_ids: List[str]):
+        completion = self.ok_to_stop(daemon_type, daemon_ids)
+        self._orchestrator_wait([completion])
+        raise_if_exception(completion)
+        return HandleCommandResult(stdout=completion.result_str())

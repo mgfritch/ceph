@@ -2328,6 +2328,22 @@ you may want to run:
         return self.upgrade.upgrade_stop()
 
     @trivial_completion
+    def ok_to_stop(self,
+                   daemon_type: str,
+                   daemon_ids: List[str]):
+        if daemon_type not in ServiceSpec.KNOWN_SERVICE_TYPES:
+            raise orchestrator.OrchestratorError(
+                    f'unknown daemon_type "{daemon_type}"')
+
+        r = self.cephadm_services[daemon_type].ok_to_stop(daemon_ids)
+        if r.retval:
+            raise orchestrator.OrchestratorError(
+                    r.stderr,
+                    errno=r.retval)
+
+        return r.stdout
+
+    @trivial_completion
     def remove_osds(self, osd_ids: List[str],
                     replace: bool = False,
                     force: bool = False):

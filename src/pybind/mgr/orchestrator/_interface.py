@@ -1191,6 +1191,16 @@ class Orchestrator(object):
         """
         raise NotImplementedError()
 
+    def ok_to_stop(self,
+                   daemon_type: str,
+                   daemon_ids: List[str]) -> Completion:
+        """
+        Check if the specified daemons can be safely stopped without reducing availability
+
+        :param daemon_type: daemon type
+        :param daemon_ids: List of daemon id
+        """
+        raise NotImplementedError()
 
 GenericSpec = Union[ServiceSpec, HostSpec]
 
