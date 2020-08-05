@@ -190,6 +190,12 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
             'desc': 'raise a health warning if the host check fails',
         },
         {
+            'name': 'warn_on_event_error',
+            'type': 'bool',
+            'default': True, # TODO: make this a level? e.g. warn, err etc?
+            'desc': 'raise a health warning for event errors',
+        },
+        {
             'name': 'log_to_cluster',
             'type': 'bool',
             'default': True,
@@ -279,6 +285,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
             self.warn_on_stray_hosts = True
             self.warn_on_stray_daemons = True
             self.warn_on_failed_host_check = True
+            self.warn_on_event_error = True
             self.allow_ptrace = False
             self.prometheus_alerts_path = ''
             self.migration_current = None
@@ -471,6 +478,41 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
                 }
         self.set_health_checks(self.health_checks)
 
+    def _check_for_event_errors(self):
+        self.log.debug('_check_for_event_errors')
+
+        if 'CEPHADM_EVENT_WARN' in self.health_checks:
+            del self.health_checks['CEPHADM_EVENT_WARN']
+
+        if not self.warn_on_event_error:
+            return
+
+        # TODO: add the below as a func on the spec_store ??
+        event_errors = defaultdict(lambda: [])
+        now: datetime.datetime = datetime.datetime.utcnow()
+        for sd in self._describe_service():
+            then: Optional[datetime.datetime] = sd.modified if sd.modified else sd.created
+            for event in sd.events:
+                if not then or event.created >= then:
+                    if event.level == OrchestratorEvent.ERROR:
+                        sn = sd.spec.service_name()
+                        # TODO: only show the leading part if it's a multiline msg
+                        #       add this as a str() or similar func on the OrchestratorEvent?
+                        msg = f'%s ...' % event.message.split('\n')[0] if event.message else None
+                        event_errors[sn].append(f'Service {sn} has error: {msg}')
+
+        # TODO: add similar logic for list_daemons() ??
+
+        if self.warn_on_event_error and event_errors:
+            self.health_checks['CEPHADM_EVENT_WARN'] = {
+                'severity': 'error',
+                'summary': '%d service(s) have event errors' % (
+                    len(event_errors)),
+                'count': len(event_errors),
+                'detail': sum(event_errors.values(), []),
+            }
+        self.set_health_checks(self.health_checks)
+
     def _serve_sleep(self):
         sleep_interval = 600
         self.log.debug('Sleeping for %d seconds', sleep_interval)
@@ -494,6 +536,7 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
                 self._refresh_hosts_and_daemons()
 
                 self._check_for_strays()
+                self._check_for_event_errors()
 
                 self._update_paused_health()
 
@@ -1460,8 +1503,18 @@ you may want to run:
         self._kick_serve_loop()
 
     @trivial_completion
-    def describe_service(self, service_type: Optional[str] = None, service_name: Optional[str] = None,
+    def describe_service(self,
+                         service_type: Optional[str] = None,
+                         service_name: Optional[str] = None,
                          refresh: bool = False) -> List[orchestrator.ServiceDescription]:
+        return self._describe_service(service_type=service_type,
+                                      service_name=service_name,
+                                      refresh=refresh)
+
+    def _describe_service(self,
+                          service_type: Optional[str] = None,
+                          service_name: Optional[str] = None,
+                          refresh: bool = False) -> List[orchestrator.ServiceDescription]:
         if refresh:
             self._invalidate_daemons_and_kick_serve()
             self.log.info('Kicked serve() loop to refresh all services')
