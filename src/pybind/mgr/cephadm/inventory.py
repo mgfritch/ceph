@@ -107,6 +107,7 @@ class SpecStore():
         self.mgr = mgr
         self.specs = {} # type: Dict[str, ServiceSpec]
         self.spec_created = {} # type: Dict[str, datetime.datetime]
+        self.spec_modified = {} # type: Dict[str, datetime.datetime]
         self.spec_preview = {} # type: Dict[str, ServiceSpec]
 
     def load(self):
@@ -117,8 +118,13 @@ class SpecStore():
                 v = json.loads(v)
                 spec = ServiceSpec.from_json(v['spec'])
                 created = datetime.datetime.strptime(v['created'], DATEFMT)
+                if 'modified' in v:
+                    modified = datetime.datetime.strptime(v['modified'], DATEFMT)
+                else:
+                    modified = created
                 self.specs[service_name] = spec
                 self.spec_created[service_name] = created
+                self.spec_modified[service_name] = modified
                 self.mgr.log.debug('SpecStore: loaded spec for %s' % (
                     service_name))
             except Exception as e:
@@ -131,16 +137,25 @@ class SpecStore():
         if spec.preview_only:
             self.spec_preview[spec.service_name()] = spec
             return None
+
+        exists = spec.service_name() in self.specs.keys()
         self.specs[spec.service_name()] = spec
-        self.spec_created[spec.service_name()] = datetime.datetime.utcnow()
+
+        now = datetime.datetime.utcnow()
+        if not exists:
+            self.spec_created[spec.service_name()] = now
+        self.spec_modified[spec.service_name()] = now
+
         self.mgr.set_store(
             SPEC_STORE_PREFIX + spec.service_name(),
             json.dumps({
                 'spec': spec.to_json(),
                 'created': self.spec_created[spec.service_name()].strftime(DATEFMT),
+                'modified': self.spec_modified[spec.service_name()].strftime(DATEFMT),
             }, sort_keys=True),
         )
-        self.mgr.events.for_service(spec, OrchestratorEvent.INFO, 'service was created')
+        self.mgr.events.for_service(spec, OrchestratorEvent.INFO,
+                'service was created' if not exists else 'service was modified')
 
     def rm(self, service_name):
         # type: (str) -> bool
@@ -148,6 +163,7 @@ class SpecStore():
         if found:
             del self.specs[service_name]
             del self.spec_created[service_name]
+            del self.spec_modified[service_name]
             self.mgr.set_store(SPEC_STORE_PREFIX + service_name, None)
         return found
 

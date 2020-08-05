@@ -1440,6 +1440,7 @@ class ServiceDescription(object):
                  service_url=None,
                  last_refresh=None,
                  created=None,
+                 modified=None,
                  size=0,
                  running=0,
                  events: Optional[List['OrchestratorEvent']]=None):
@@ -1466,6 +1467,7 @@ class ServiceDescription(object):
         # datetime when this info was last refreshed
         self.last_refresh = last_refresh   # type: Optional[datetime.datetime]
         self.created = created   # type: Optional[datetime.datetime]
+        self.modified = modified   # type: Optional[datetime.datetime]
 
         self.spec: ServiceSpec = spec
 
@@ -1488,8 +1490,9 @@ class ServiceDescription(object):
             'running': self.running,
             'last_refresh': self.last_refresh,
             'created': self.created,
+            'modified': self.modified,
         }
-        for k in ['last_refresh', 'created']:
+        for k in ['last_refresh', 'created', 'modified']:
             if getattr(self, k):
                 status[k] = getattr(self, k).strftime(DATEFMT)
         status = {k: v for (k, v) in status.items() if v is not None}
@@ -1507,7 +1510,7 @@ class ServiceDescription(object):
         spec = ServiceSpec.from_json(c)
 
         c_status = status.copy()
-        for k in ['last_refresh', 'created']:
+        for k in ['last_refresh', 'created', 'modified']:
             if k in c_status:
                 c_status[k] = datetime.datetime.strptime(c_status[k], DATEFMT)
         events = [OrchestratorEvent.from_json(e) for e in event_strs]

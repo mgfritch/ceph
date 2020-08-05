@@ -1517,6 +1517,7 @@ you may want to run:
                             self.inventory.all_specs())
 
                     sm[n].created = self.spec_store.spec_created[n]
+                    sm[n].modified = self.spec_store.spec_modified[n]
                     if service_type == 'nfs':
                         spec = cast(NFSServiceSpec, spec)
                         sm[n].rados_config_location = spec.rados_config_location()
