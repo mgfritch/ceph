@@ -3177,6 +3177,11 @@ def command_bootstrap():
                     f.write('\n')
                 f.write(ssh_pub.strip() + '\n')
 
+        logger.info('Restarting cephadm module...')
+        cli(['mgr', 'module', 'disable', 'cephadm'])
+        cli(['mgr', 'module', 'enable', 'cephadm'])
+        wait_for_mgr_restart()
+
         host = get_hostname()
         logger.info('Adding host %s...' % host)
         try:
