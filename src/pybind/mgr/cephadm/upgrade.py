@@ -99,7 +99,7 @@ class CephadmUpgrade:
                 (major, minor, patch) = version.split('.')
                 assert int(minor) >= 0
                 assert int(patch) >= 0
-            except:
+            except ValueError:
                 raise OrchestratorError('version must be in the form X.Y.Z (e.g., 15.2.3)')
             if int(major) < 15 or (int(major) == 15 and int(minor) < 2):
                 raise OrchestratorError('cephadm only supports octopus (15.2.0) or later')
