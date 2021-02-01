@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Optional, Dict
 import orchestrator
 from cephadm.serve import CephadmServe
 from cephadm.utils import name_to_config_section, CEPH_UPGRADE_ORDER
-from orchestrator import OrchestratorError, DaemonDescription, daemon_type_to_service, service_to_daemon_types
+from orchestrator import OrchestratorError, DaemonDescription, daemon_type_to_service
 
 if TYPE_CHECKING:
     from .module import CephadmOrchestrator
