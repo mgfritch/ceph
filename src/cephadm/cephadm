@@ -7053,6 +7053,11 @@ def _get_parser():
         action='store_true',
         default=not CONTAINER_INIT,
         help='Do not run podman/docker with `--init`')
+    parser.add_argument(
+        '--container-init',
+        action='store_true',
+        default=CONTAINER_INIT,
+        help=argparse.SUPPRESS)
 
     subparsers = parser.add_subparsers(help='sub-command')
 
