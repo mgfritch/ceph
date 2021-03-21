@@ -780,10 +780,11 @@ class IscsiServiceSpec(ServiceSpec):
                  networks: Optional[List[str]] = None,
                  ):
         assert service_type == 'iscsi'
-        super(IscsiServiceSpec, self).__init__('iscsi', service_id=service_id,
-                                               placement=placement, unmanaged=unmanaged,
-                                               preview_only=preview_only,
-                                               config=config, networks=networks)
+        super(IscsiServiceSpec, self).__init__(
+                'iscsi', service_id=service_id if service_id else pool,
+                placement=placement, unmanaged=unmanaged,
+                preview_only=preview_only,
+                config=config, networks=networks)
 
         #: RADOS pool where ceph-iscsi config data is stored.
         self.pool = pool

@@ -760,6 +760,7 @@ class TestCephadm(object):
     @mock.patch("cephadm.serve.CephadmServe._run_cephadm", _run_cephadm('{}'))
     @mock.patch("cephadm.module.CephadmOrchestrator.rados", mock.MagicMock())
     def test_iscsi(self, cephadm_module):
+        # service_id != pool
         with with_host(cephadm_module, 'test'):
             ps = PlacementSpec(hosts=['test'], count=1)
             spec = IscsiServiceSpec(
@@ -777,6 +778,24 @@ class TestCephadm(object):
                 match_glob(out, "Deployed iscsi.name.* on host 'test'")
 
                 assert_rm_daemon(cephadm_module, 'iscsi.name.test', 'test')
+
+        # service_id == pool
+        with with_host(cephadm_module, 'test'):
+            ps = PlacementSpec(hosts=['test'], count=1)
+            spec = IscsiServiceSpec(
+                pool='pool',
+                api_user='user',
+                api_password='password',
+                placement=ps)
+            unmanaged_spec = ServiceSpec.from_json(spec.to_json())
+            unmanaged_spec.unmanaged = True
+            with with_service(cephadm_module, unmanaged_spec):
+
+                c = cephadm_module.add_daemon(spec)
+                [out] = wait(cephadm_module, c)
+                match_glob(out, "Deployed iscsi.pool.* on host 'test'")
+
+                assert_rm_daemon(cephadm_module, 'iscsi.pool.test', 'test')
 
     @pytest.mark.parametrize(
         "on_bool",
