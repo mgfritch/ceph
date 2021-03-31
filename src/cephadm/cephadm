@@ -6385,21 +6385,19 @@ class HostFacts():
                             return {}
                     except OSError:
                         pass
-                    else:
-                        summary = {}  # type: Dict[str, int]
-                        for line in profiles.split('\n'):
-                            item, mode = line.split(' ')
-                            mode = mode.strip('()')
-                            if mode in summary:
-                                summary[mode] += 1
-                            else:
-                                summary[mode] = 0
-                        summary_str = ','.join(['{} {}'.format(v, k) for k, v in summary.items()])
-                        security = {**security, **summary}  # type: ignore
-                        security['description'] += '({})'.format(summary_str)
 
-                    return security
-            return {}
+                    summary = {}  # type: Dict[str, int]
+                    for line in profiles.split('\n'):
+                        item, mode = line.split(' ')
+                        mode = mode.strip('()')
+                        if mode in summary:
+                            summary[mode] += 1
+                        else:
+                            summary[mode] = 0
+                    summary_str = ','.join(['{} {}'.format(v, k) for k, v in summary.items()])
+                    security = {**security, **summary}  # type: ignore
+                    security['description'] += '({})'.format(summary_str)
+            return security
 
         ret = {}
         if os.path.exists('/sys/kernel/security/lsm'):
