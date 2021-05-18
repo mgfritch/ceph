@@ -15,7 +15,7 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
 from typing import List, Optional
-from .fixtures import exporter
+from .fixtures import cephadm_fs, exporter, with_cephadm_ctx
 
 
 with mock.patch('builtins.open', create=True):
@@ -1028,3 +1028,35 @@ class TestMonitoring(object):
         ]
         assert mock.call().__enter__().write('foo') in _open.mock_calls
         assert mock.call().__enter__().write('bar') in _open.mock_calls
+
+
+class TestBootstrap(TestCephAdm):
+    '''
+    usage: cephadm bootstrap [-h] [--config CONFIG] [--mon-id MON_ID] [--mon-addrv MON_ADDRV] [--mon-ip MON_IP] [--mgr-id MGR_ID] [--fsid FSID] [--output-dir OUTPUT_DIR] [--output-keyring OUTPUT_KEYRING]
+                             [--output-config OUTPUT_CONFIG] [--output-pub-ssh-key OUTPUT_PUB_SSH_KEY] [--skip-admin-label] [--skip-ssh] [--initial-dashboard-user INITIAL_DASHBOARD_USER]
+                             [--initial-dashboard-password INITIAL_DASHBOARD_PASSWORD] [--ssl-dashboard-port SSL_DASHBOARD_PORT] [--dashboard-key DASHBOARD_KEY] [--dashboard-crt DASHBOARD_CRT]
+                             [--ssh-config SSH_CONFIG] [--ssh-private-key SSH_PRIVATE_KEY] [--ssh-public-key SSH_PUBLIC_KEY] [--ssh-user SSH_USER] [--skip-mon-network] [--skip-dashboard]
+                             [--dashboard-password-noupdate] [--no-minimize-config] [--skip-ping-check] [--skip-pull] [--skip-firewalld] [--allow-overwrite] [--allow-fqdn-hostname] [--allow-mismatched-release]
+                             [--skip-prepare-host] [--orphan-initial-daemons] [--skip-monitoring-stack] [--apply-spec APPLY_SPEC] [--shared_ceph_folder CEPH_SOURCE_FOLDER] [--registry-url REGISTRY_URL]
+                             [--registry-username REGISTRY_USERNAME] [--registry-password REGISTRY_PASSWORD] [--registry-json REGISTRY_JSON] [--with-exporter] [--exporter-config EXPORTER_CONFIG]
+                             [--cluster-network CLUSTER_NETWORK] [--single-host-defaults]
+    '''
+
+    EXTRA_ARGS = [
+        '--allow-mismatched-release',
+        '--skip-prepare-host',
+        '--skip-dashboard',
+    ]
+
+    def test_mon_ip(self, cephadm_fs):
+        cmd = ['bootstrap', *self.EXTRA_ARGS, '--mon-ip', '192.168.1.1']
+        list_networks = {
+                '192.168.1.0/24': {
+                    'eth0': ['192.168.1.1']
+                }
+        }
+
+        with with_cephadm_ctx(cmd, list_networks=list_networks) as ctx:
+            ctx.container_engine = self.mock_podman()
+            retval = cd.command_bootstrap(ctx)
+            assert retval == 0
