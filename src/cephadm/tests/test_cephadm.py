@@ -1060,3 +1060,17 @@ class TestBootstrap(TestCephAdm):
             ctx.container_engine = self.mock_podman()
             retval = cd.command_bootstrap(ctx)
             assert retval == 0
+
+    def test_config_param(self, cephadm_fs):
+        cmd = ['bootstrap', *self.EXTRA_ARGS, '--mon-ip', '192.168.1.1', '--config', 'foo']
+
+        with with_cephadm_ctx(cmd) as ctx:
+            ctx.container_engine = self.mock_podman()
+            with pytest.raises(cd.Error):
+                retval = cd.command_bootstrap(ctx)
+
+        with with_cephadm_ctx(cmd) as ctx:
+            ctx.container_engine = self.mock_podman()
+            cephadm_fs.create_file('foo')
+            retval = cd.command_bootstrap(ctx)
+            assert retval == 0
