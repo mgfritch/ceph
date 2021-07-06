@@ -696,8 +696,8 @@ docker.io/ceph/daemon-base:octopus
         ])
     @mock.patch('cephadm.call')
     def test_infer_config(self, _call, fsid, config, name, list_daemons, result, cephadm_fs):
-        # mock the context
-        ctx = mock.MagicMock()
+        # build the context
+        ctx = cd.CephadmContext()
         ctx.fsid = fsid
         ctx.config = config
         ctx.name = name

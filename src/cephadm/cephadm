@@ -1697,7 +1697,7 @@ def infer_config(func):
             return func(ctx)
         config = None
         if ctx.fsid:
-            name = ctx.name
+            name = ctx.name if 'name' in ctx else None
             if not name:
                 daemon_list = list_daemons(ctx, detail=False)
                 for daemon in daemon_list:
