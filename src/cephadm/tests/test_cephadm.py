@@ -1461,3 +1461,71 @@ class TestShell(object):
             retval = cd.command_shell(ctx)
             assert retval == 0
             assert ctx.keyring == 'foo'
+
+
+'''
+usage: cephadm ceph-volume [-h] [--fsid FSID] [--config-json CONFIG_JSON] [--config CONFIG] [--keyring KEYRING] ...
+
+positional arguments:
+  command               command
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --fsid FSID           cluster FSID
+  --config-json CONFIG_JSON
+                        JSON file with config and (client.bootrap-osd) key
+  --config CONFIG, -c CONFIG
+                        ceph conf file
+  --keyring KEYRING, -k KEYRING
+                        ceph.keyring to pass through to the container
+'''
+
+
+class TestCephVolume(object):
+
+    def test_fsid(self, cephadm_fs):
+        cv_cmd = ['--', 'inventory', '--format', 'json']
+        fsid = '00000000-0000-0000-0000-0000deadbeef'
+
+        cmd = ['ceph-volume', '--fsid', fsid] + cv_cmd
+        with with_cephadm_ctx(cmd) as ctx:
+            cd.command_ceph_volume(ctx)
+            assert ctx.fsid == fsid
+
+        s = get_ceph_conf(fsid=fsid)
+        f = cephadm_fs.create_file('ceph.conf', contents=s)
+
+        cmd = ['ceph-volume', '--fsid', fsid, '--config', f.path] + cv_cmd
+        with with_cephadm_ctx(cmd) as ctx:
+            cd.command_ceph_volume(ctx)
+            assert ctx.fsid == fsid
+
+        cmd = ['ceph-volume', '--fsid', '10000000-0000-0000-0000-0000deadbeef', '--config', f.path] + cv_cmd
+        with with_cephadm_ctx(cmd) as ctx:
+            err = 'fsid does not match ceph.conf'
+            with pytest.raises(cd.Error, match=err):
+                cd.command_ceph_volume(ctx)
+                assert ctx.fsid == None
+    '''
+    def test_config(self, cephadm_fs):
+        cv_cmd = ['--', 'inventory', '--format', 'json']
+
+        cmd = ['ceph-volume'] + cv_cmd
+        with with_cephadm_ctx(cmd) as ctx:
+            retval = cd.command_ceph_volume(ctx)
+            assert retval == 0
+            assert ctx.config == None
+
+        cephadm_fs.create_file(cd.SHELL_DEFAULT_CONF)
+        with with_cephadm_ctx(cmd) as ctx:
+            retval = cd.command_ceph_volume(ctx)
+            assert retval == 0
+            assert ctx.config == cd.SHELL_DEFAULT_CONF
+
+        cmd = ['ceph-volume', '--config', 'foo'] + cv_cmd
+        with with_cephadm_ctx(cmd) as ctx:
+            retval = cd.command_ceph_volume(ctx)
+            assert retval == 0
+            assert ctx.config == 'foo'
+
+    '''
