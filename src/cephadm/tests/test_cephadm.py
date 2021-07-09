@@ -626,8 +626,8 @@ docker.io/ceph/daemon-base:octopus
         ])
     @mock.patch('cephadm.call')
     def test_infer_fsid(self, _call, fsid, ceph_conf, list_daemons, result, err, cephadm_fs):
-        # mock the context
-        ctx = mock.MagicMock()
+        # build the context
+        ctx = cd.CephadmContext()
         ctx.fsid = fsid
 
         # mock the decorator
