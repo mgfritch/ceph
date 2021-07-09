@@ -1183,7 +1183,7 @@ class TestMonitoring(object):
         daemon_type = 'prometheus'
         uid, gid = 50, 50
         daemon_id = 'home'
-        ctx = mock.Mock()
+        ctx = cd.CephadmContext()
         ctx.data_dir = '/somedir'
         files = {
             'files': {
