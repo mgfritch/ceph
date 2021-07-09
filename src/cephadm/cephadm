@@ -1701,7 +1701,7 @@ def infer_config(func):
             if not name:
                 daemon_list = list_daemons(ctx, detail=False)
                 for daemon in daemon_list:
-                    if daemon['name'].startswith('mon.'):
+                    if daemon.get('name', '').startswith('mon.'):
                         name = daemon['name']
                         break
             if name:

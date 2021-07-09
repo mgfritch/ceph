@@ -660,10 +660,10 @@ docker.io/ceph/daemon-base:octopus
             ),
             (
                 '00000000-0000-0000-0000-0000deadbeef',
-                '/foo/bar.conf',
-                'mon.a',
-                [{'name': 'mon.a'}],
-                '/foo/bar.conf',
+                None,
+                None,
+                [],
+                cd.SHELL_DEFAULT_CONF,
             ),
             (
                 '00000000-0000-0000-0000-0000deadbeef',
@@ -671,6 +671,20 @@ docker.io/ceph/daemon-base:octopus
                 None,
                 [{'name': 'mon.a'}],
                 '/var/lib/ceph/00000000-0000-0000-0000-0000deadbeef/mon.a/config',
+            ),
+            (
+                '00000000-0000-0000-0000-0000deadbeef',
+                None,
+                None,
+                [{'name': 'osd.0'}],
+                cd.SHELL_DEFAULT_CONF,
+            ),
+            (
+                '00000000-0000-0000-0000-0000deadbeef',
+                '/foo/bar.conf',
+                'mon.a',
+                [{'name': 'mon.a'}],
+                '/foo/bar.conf',
             ),
             (
                 '00000000-0000-0000-0000-0000deadbeef',
