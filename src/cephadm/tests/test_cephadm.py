@@ -1,6 +1,7 @@
 # type: ignore
 
 import errno
+import json
 import mock
 import os
 import pytest
@@ -1185,12 +1186,12 @@ class TestMonitoring(object):
         daemon_id = 'home'
         ctx = cd.CephadmContext()
         ctx.data_dir = '/somedir'
-        ctx.config_json = {
+        ctx.config_json = json.dumps({
             'files': {
                 'prometheus.yml': 'foo',
                 '/etc/prometheus/alerting/ceph_alerts.yml': 'bar'
             }
-        }
+        })
 
         cd.create_daemon_dirs(ctx,
                               fsid,
