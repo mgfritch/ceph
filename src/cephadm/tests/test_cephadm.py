@@ -1165,14 +1165,14 @@ class TestMonitoring(object):
         version = cd.Monitoring.get_version(ctx, 'container_id', daemon_type)
         assert version == '0.16.1'
 
+
+    # TODO: pyfakefs
     @mock.patch('cephadm.os.fchown')
-    @mock.patch('cephadm.get_parm')
     @mock.patch('cephadm.makedirs')
     @mock.patch('cephadm.open')
     @mock.patch('cephadm.make_log_dir')
     @mock.patch('cephadm.make_data_dir')
-    def test_create_daemon_dirs_prometheus(self, make_data_dir, make_log_dir, _open, makedirs,
-                                           get_parm, fchown):
+    def test_create_daemon_dirs_prometheus(self, make_data_dir, make_log_dir, _open, makedirs, fchown):
         """
         Ensures the required and optional files given in the configuration are
         created and mapped correctly inside the container. Tests absolute and
@@ -1185,13 +1185,12 @@ class TestMonitoring(object):
         daemon_id = 'home'
         ctx = cd.CephadmContext()
         ctx.data_dir = '/somedir'
-        files = {
+        ctx.config_json = {
             'files': {
                 'prometheus.yml': 'foo',
                 '/etc/prometheus/alerting/ceph_alerts.yml': 'bar'
             }
         }
-        get_parm.return_value = files
 
         cd.create_daemon_dirs(ctx,
                               fsid,
