@@ -907,7 +907,7 @@ Usage:
 
     @_cli_write_command('orch daemon add rgw')
     def _rgw_add(self,
-                 svc_id: str,
+                 service_id: str,
                  placement: Optional[str] = None,
                  _end_positional_: int = 0,
                  port: Optional[int] = None,
@@ -918,7 +918,7 @@ Usage:
             raise OrchestratorValidationError('unrecognized command -i; -h or --help for usage')
 
         spec = RGWSpec(
-            service_id=svc_id,
+            service_id=service_id,
             rgw_frontend_port=port,
             ssl=ssl,
             placement=PlacementSpec.from_string(placement),
@@ -927,7 +927,7 @@ Usage:
 
     @_cli_write_command('orch daemon add nfs')
     def _nfs_add(self,
-                 svc_id: str,
+                 service_id: str,
                  placement: Optional[str] = None,
                  inbuf: Optional[str] = None) -> HandleCommandResult:
         """Start NFS daemon(s)"""
@@ -935,7 +935,7 @@ Usage:
             raise OrchestratorValidationError('unrecognized command -i; -h or --help for usage')
 
         spec = NFSServiceSpec(
-            service_id=svc_id,
+            service_id=service_id,
             placement=PlacementSpec.from_string(placement),
         )
         return self._daemon_add_misc(spec)
@@ -1094,7 +1094,7 @@ Usage:
 
     @_cli_write_command('orch apply rgw')
     def _apply_rgw(self,
-                   svc_id: str,
+                   service_id: str,
                    placement: Optional[str] = None,
                    _end_positional_: int = 0,
                    realm: Optional[str] = None,
@@ -1118,7 +1118,7 @@ Usage:
                 'Cannot add RGW: Zone specified but no realm specified')
 
         spec = RGWSpec(
-            service_id=svc_id,
+            service_id=service_id,
             rgw_realm=realm,
             rgw_zone=zone,
             rgw_frontend_port=port,
@@ -1132,7 +1132,7 @@ Usage:
 
     @_cli_write_command('orch apply nfs')
     def _apply_nfs(self,
-                   svc_id: str,
+                   service_id: str,
                    placement: Optional[str] = None,
                    format: Format = Format.plain,
                    port: Optional[int] = None,
@@ -1145,7 +1145,7 @@ Usage:
             raise OrchestratorValidationError('unrecognized command -i; -h or --help for usage')
 
         spec = NFSServiceSpec(
-            service_id=svc_id,
+            service_id=service_id,
             port=port,
             placement=PlacementSpec.from_string(placement),
             unmanaged=unmanaged,
