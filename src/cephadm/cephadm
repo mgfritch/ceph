@@ -4637,6 +4637,8 @@ def command_shell(ctx):
     if daemon_id and not ctx.fsid:
         raise Error('must pass --fsid to specify cluster')
 
+
+
     # use /etc/ceph files by default, if present.  we do this instead of
     # making these defaults in the arg parser because we don't want an error
     # if they don't exist.
@@ -5690,6 +5692,7 @@ def command_zap_osds(ctx: CephadmContext) -> None:
 ##################################
 
 
+@validate_fsid
 def command_rm_cluster(ctx):
     # type: (CephadmContext) -> None
     if not ctx.force:

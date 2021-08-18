@@ -1677,3 +1677,20 @@ if ! grep -qs /var/lib/ceph/9b9d7609-f4d5-4aba-94c8-effa764d96c9/iscsi.daemon_id
             assert c.cname == 'ceph-9b9d7609-f4d5-4aba-94c8-effa764d96c9-iscsi-something'
             assert c.old_cname == 'ceph-9b9d7609-f4d5-4aba-94c8-effa764d96c9-iscsi.something'
 
+
+class TestRmCluster(object):
+
+    def test_fsid(self, cephadm_fs):
+        fsid = '00000000-0000-0000-0000-0000deadbeef'
+
+        cmd = ['rm-cluster', '--fsid', fsid, '--force']
+        with with_cephadm_ctx(cmd) as ctx:
+            cd.command_rm_cluster(ctx)
+            assert ctx.fsid == fsid
+
+        cmd = ['rm-cluster', '--fsid', '00000000-0000-0000-0000-0000deadbeez', '--force']
+        with with_cephadm_ctx(cmd) as ctx:
+            err = 'not an fsid'
+            with pytest.raises(cd.Error, match=err):
+                cd.command_rm_cluster(ctx)
+                assert ctx.fsid == None
