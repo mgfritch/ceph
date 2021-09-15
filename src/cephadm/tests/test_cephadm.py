@@ -1568,3 +1568,64 @@ class TestRmRepo:
 
         ctx.container_engine = mock_docker()
         cd.command_rm_repo(ctx)
+
+
+class TestEnter:
+
+    def _get_cmd(
+            self,
+            fsid='00000000-0000-0000-0000-0000deadbeef',
+            name='mgr.x',
+    ):
+        cmd = ['enter']
+        if fsid:
+            cmd += ['--fsid', fsid]
+        if name:
+            cmd += ['--name', name]
+        return cmd
+
+    @mock.patch('cephadm.get_running_container_name', return_value='foo')
+    def test_fsid(self, cephadm_fs):
+        fsid = '00000000-0000-0000-0000-0000deadbeef'
+
+        cmd = self._get_cmd(fsid=fsid)
+        with with_cephadm_ctx(cmd) as ctx:
+            cd.command_enter(ctx)
+            assert ctx.fsid == fsid
+
+        cmd = self._get_cmd(fsid='00000000-0000-0000-0000-0000deadbeez')
+        with with_cephadm_ctx(cmd) as ctx:
+            err = 'not an fsid'
+            with pytest.raises(cd.Error, match=err):
+                cd.command_enter(ctx)
+                #assert ctx.fsid == None
+
+        s = get_ceph_conf(fsid=fsid)
+        f = cephadm_fs.create_file('ceph.conf', contents=s)
+
+        cmd = self._get_cmd(fsid=fsid)
+        with with_cephadm_ctx(cmd) as ctx:
+            cd.command_enter(ctx)
+            assert ctx.fsid == fsid
+
+        cmd = self._get_cmd(fsid='10000000-0000-0000-0000-0000deadbeef')
+        with with_cephadm_ctx(cmd) as ctx:
+            err = 'fsid does not match ceph.conf'
+            with pytest.raises(cd.Error, match=err):
+                cd.command_enter(ctx)
+                #assert ctx.fsid == None
+
+
+    @mock.patch('cephadm.get_running_container_name', return_value='foo')
+    def test_name(self, get_running_container_name):
+        cmd = ['enter', '--fsid', '00000000-0000-0000-0000-0000deadbeef']
+
+        name = 'mgr.x'
+        with with_cephadm_ctx(cmd + ['--name', name]) as ctx:
+            cd.command_enter(ctx)
+
+        name = 'mgr-x'
+        with with_cephadm_ctx(cmd + ['--name', name]) as ctx:
+            err = 'invalid daemon name'
+            with pytest.raises(cd.Error, match=err):
+                cd.command_enter(ctx)
