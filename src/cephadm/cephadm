@@ -1712,6 +1712,16 @@ def infer_fsid(func: FuncT) -> FuncT:
     return cast(FuncT, _infer_fsid)
 
 
+def validate_name(func: FuncT) -> FuncT:
+    @wraps(func)
+    def _validate_name(ctx: CephadmContext) -> Any:
+        if 'name' in ctx:
+            if '.' not in ctx.name:
+                raise Error(f'invalid daemon name: {ctx.name}')
+        return func(ctx)
+    return cast(FuncT, _validate_name)
+
+
 def infer_config(func: FuncT) -> FuncT:
     """
     If we find a MON daemon, use the config from that container
@@ -4471,6 +4481,8 @@ def extract_uid_gid_monitoring(ctx, daemon_type):
 @default_image
 def command_deploy(ctx):
     # type: (CephadmContext) -> None
+    if '.' not in ctx.name:
+        raise Error(f'invalid daemon name: {ctx.name}')
     daemon_type, daemon_id = ctx.name.split('.', 1)
 
     lock = FileLock(ctx, ctx.fsid)
@@ -4610,6 +4622,8 @@ def command_deploy(ctx):
 @infer_image
 def command_run(ctx):
     # type: (CephadmContext) -> int
+    if '.' not in ctx.name:
+        raise Error(f'invalid daemon name: {ctx.name}')
     (daemon_type, daemon_id) = ctx.name.split('.', 1)
     c = get_container(ctx, ctx.fsid, daemon_type, daemon_id)
     command = c.run_cmd()
@@ -4709,13 +4723,15 @@ def command_shell(ctx):
 
 ##################################
 
-
 @infer_fsid
+@validate_name
 def command_enter(ctx):
     # type: (CephadmContext) -> int
     if not ctx.fsid:
         raise Error('must pass --fsid to specify cluster')
+
     (daemon_type, daemon_id) = ctx.name.split('.', 1)
+
     container_args = ['-i']  # type: List[str]
     if ctx.command:
         command = ctx.command
@@ -5217,6 +5233,8 @@ def command_adopt(ctx):
     if not ctx.skip_pull:
         _pull_image(ctx, ctx.image)
 
+    if '.' not in ctx.name:
+        raise Error(f'invalid daemon name: {ctx.name}')
     (daemon_type, daemon_id) = ctx.name.split('.', 1)
 
     # legacy check
@@ -5606,7 +5624,10 @@ def command_rm_daemon(ctx):
     lock = FileLock(ctx, ctx.fsid)
     lock.acquire()
 
+    if '.' not in ctx.name:
+        raise Error(f'invalid daemon name: {ctx.name}')
     (daemon_type, daemon_id) = ctx.name.split('.', 1)
+
     unit_name = get_unit_name_by_daemon_name(ctx, ctx.fsid, ctx.name)
 
     if daemon_type in ['mon', 'osd'] and not ctx.force:
