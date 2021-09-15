@@ -1568,3 +1568,32 @@ class TestRmRepo:
 
         ctx.container_engine = mock_docker()
         cd.command_rm_repo(ctx)
+
+
+class TestEnter:
+
+    def _get_cmd(
+            self,
+            fsid='00000000-0000-0000-0000-0000deadbeef',
+            name='mgr.x',
+    ):
+        cmd = ['enter']
+        if fsid:
+            cmd += ['--fsid', fsid]
+        if name:
+            cmd += ['--name', name]
+        return cmd
+
+    @mock.patch('cephadm.get_running_container_name', return_value='foo')
+    def test_name(self, get_running_container_name):
+        name = 'mgr.x'
+        cmd = self._get_cmd(name=name)
+        with with_cephadm_ctx(cmd) as ctx:
+            cd.command_enter(ctx)
+
+        name = 'mgr-x'
+        cmd = self._get_cmd(name=name)
+        with with_cephadm_ctx(cmd) as ctx:
+            err = 'invalid daemon name'
+            with pytest.raises(cd.Error, match=err):
+                cd.command_enter(ctx)

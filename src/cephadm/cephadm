@@ -1712,6 +1712,16 @@ def infer_fsid(func: FuncT) -> FuncT:
     return cast(FuncT, _infer_fsid)
 
 
+def validate_name(func: FuncT) -> FuncT:
+    @wraps(func)
+    def _validate_name(ctx: CephadmContext) -> Any:
+        if 'name' in ctx:
+            if '.' not in ctx.name:
+                raise Error(f'invalid daemon name: {ctx.name}')
+        return func(ctx)
+    return cast(FuncT, _validate_name)
+
+
 def infer_config(func: FuncT) -> FuncT:
     """
     If we find a MON daemon, use the config from that container
@@ -4711,6 +4721,7 @@ def command_shell(ctx):
 
 
 @infer_fsid
+@validate_name
 def command_enter(ctx):
     # type: (CephadmContext) -> int
     if not ctx.fsid:
