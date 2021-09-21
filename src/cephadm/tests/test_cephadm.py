@@ -1618,14 +1618,14 @@ class TestEnter:
 
     @mock.patch('cephadm.get_running_container_name', return_value='foo')
     def test_name(self, get_running_container_name):
-        cmd = ['enter', '--fsid', '00000000-0000-0000-0000-0000deadbeef']
-
         name = 'mgr.x'
-        with with_cephadm_ctx(cmd + ['--name', name]) as ctx:
+        cmd = self._get_cmd(name=name)
+        with with_cephadm_ctx(cmd) as ctx:
             cd.command_enter(ctx)
 
-        name = 'mgr-x'
-        with with_cephadm_ctx(cmd + ['--name', name]) as ctx:
-            err = 'invalid daemon name'
-            with pytest.raises(cd.Error, match=err):
-                cd.command_enter(ctx)
+        for name in [None, '', 'mgr-x']:
+            cmd = self._get_cmd(name=name)
+            with with_cephadm_ctx(cmd) as ctx:
+                err = 'invalid daemon name'
+                with pytest.raises(cd.Error, match=err):
+                    cd.command_enter(ctx)
