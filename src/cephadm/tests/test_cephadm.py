@@ -1597,3 +1597,37 @@ class TestEnter:
             err = 'invalid daemon name'
             with pytest.raises(cd.Error, match=err):
                 cd.command_enter(ctx)
+
+
+class TestAdopt:
+
+    def _setup(self, cephadm_fs):
+        # TODO: add `--fsid` arg to adopt?
+        s = get_ceph_conf()
+        cephadm_fs.create_file('/etc/ceph/ceph.conf', contents=s)
+
+    def _get_cmd(
+        self,
+        name='mgr.x',
+        style='legacy',
+    ):
+        cmd = ['adopt']
+        if name:
+            cmd += ['--name', name]
+        if style:
+            cmd += ['--style', style]
+        return cmd
+
+    @mock.patch('cephadm.get_running_container_name', return_value='foo')
+    def test_name(self, get_running_container_name, cephadm_fs):
+        name = 'mgr.x'
+        cmd = self._get_cmd(name=name)
+        with with_cephadm_ctx(cmd) as ctx:
+            cd.command_adopt(ctx)
+
+        name = 'mgr-x'
+        cmd = self._get_cmd(name=name)
+        with with_cephadm_ctx(cmd) as ctx:
+            err = 'invalid daemon name'
+            with pytest.raises(cd.Error, match=err):
+                cd.command_adopt(ctx)
