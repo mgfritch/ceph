@@ -1428,23 +1428,9 @@ addr: 192.168.122.165'''
         ctx.ssh_user = 'root'
 
         host_spec = {'service_type': 'host', 'hostname': 'vm-02', 'addr': '192.168.122.165'}
-
         retval = cd._distribute_ssh_keys(ctx, host_spec, 'bootstrap_hostname')
-
         assert retval == 0
 
         call.return_value = ('', '', 1)
-
         retval = cd._distribute_ssh_keys(ctx, host_spec, 'bootstrap_hostname')
-
         assert retval == 1
-
-
-
-
-
-
-
-
-
-  
