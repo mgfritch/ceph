@@ -208,8 +208,8 @@ CONTAINER_PREFERENCE = (Podman, Docker)  # prefer podman to docker
 
 # Log and console output config
 logging_config = {
-    'propagate': 1,
     'version': 1,
+    'disable_existing_loggers': True,
     'formatters': {
         'cephadm': {
             'format': '%(asctime)s %(thread)x %(levelname)s %(message)s'
@@ -217,12 +217,10 @@ logging_config = {
     },
     'handlers': {
         'console': {
-            'propagate': 1,
             'level': 'INFO',
             'class': 'logging.StreamHandler',
         },
         'log_file': {
-            'propagate': 1,
             'level': 'DEBUG',
             'class': 'logging.handlers.WatchedFileHandler',
             'formatter': 'cephadm',
@@ -231,7 +229,6 @@ logging_config = {
     },
     'loggers': {
         '': {
-            'propagate': 1,
             'level': 'DEBUG',
             'handlers': ['console', 'log_file'],
         }
@@ -8278,7 +8275,6 @@ def cephadm_init(args: List[str]) -> CephadmContext:
         os.makedirs(LOG_DIR)
     dictConfig(logging_config)
     logger = logging.getLogger()
-    logger.propagate = True
 
     if not os.path.exists(ctx.logrotate_dir + '/cephadm'):
         with open(ctx.logrotate_dir + '/cephadm', 'w') as f:
