@@ -2,7 +2,6 @@
 
 import errno
 import json
-import logging
 import mock
 import os
 import pytest
@@ -23,14 +22,9 @@ from .fixtures import (
     with_cephadm_ctx,
 )
 
-global logger
-logger = logging.getLogger()
-import pdb;pdb.set_trace()
-
 with mock.patch('builtins.open', create=True):
     from importlib.machinery import SourceFileLoader
     cd = SourceFileLoader('cephadm', 'cephadm').load_module()
-    cd.logger = logging.getLogger()
 
 
 def get_ceph_conf(
@@ -48,7 +42,6 @@ class TestCephAdm(object):
     def test_docker_unit_file(self):
         ctx = cd.CephadmContext()
         ctx.container_engine = mock_docker()
-        import pdb;pdb.set_trace()
         r = cd.get_unit_file(ctx, '9b9d7609-f4d5-4aba-94c8-effa764d96c9')
         assert 'Requires=docker.service' in r
         ctx.container_engine = mock_podman()
@@ -162,10 +155,10 @@ class TestCephAdm(object):
         args = cd._parse_args(['--image', 'foo', 'version'])
         assert args.image == 'foo'
 
-    #def test_parse_mem_usage(self):
-    #    #cd.logger = mock.Mock()
-    #    #len, summary = cd._parse_mem_usage(0, 'c6290e3f1489,-- / --')
-    #    #assert summary == {}
+    def test_parse_mem_usage(self):
+        cd.logger = mock.Mock()
+        len, summary = cd._parse_mem_usage(0, 'c6290e3f1489,-- / --')
+        assert summary == {}
 
     def test_CustomValidation(self):
         assert cd._parse_args(['deploy', '--name', 'mon.a', '--fsid', 'fsid'])
@@ -185,15 +178,15 @@ class TestCephAdm(object):
             cd._parse_podman_version('inval.id')
         assert 'inval' in str(res.value)
 
-    #def test_is_ipv6(self):
-    #    cd.logger = mock.Mock()
-    #    for good in ("[::1]", "::1",
-    #                 "fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"):
-    #        assert cd.is_ipv6(good)
-    #    for bad in ("127.0.0.1",
-    #                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffg",
-    #                "1:2:3:4:5:6:7:8:9", "fd00::1::1", "[fg::1]"):
-    #        assert not cd.is_ipv6(bad)
+    def test_is_ipv6(self):
+        cd.logger = mock.Mock()
+        for good in ("[::1]", "::1",
+                     "fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"):
+            assert cd.is_ipv6(good)
+        for bad in ("127.0.0.1",
+                    "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffg",
+                    "1:2:3:4:5:6:7:8:9", "fd00::1::1", "[fg::1]"):
+            assert not cd.is_ipv6(bad)
 
     def test_unwrap_ipv6(self):
         def unwrap_test(address, expected):
@@ -1299,40 +1292,6 @@ class TestCheckHost:
         ctx.container_engine = mock_docker()
         cd.command_check_host(ctx)
 
-    @mock.patch('cephadm.find_executable', return_value='foo')
-    @mock.patch('cephadm.check_time_sync', return_value=True)
-    @mock.patch('cephadm.get_hostname', return_value='host.site')
-    def test_expect_hostname2(self, find_executable, check_time_sync, get_hostname):
-        cmd = ['check-host']
-        with with_cephadm_ctx(cmd) as ctx:
-            import pdb;pdb.set_trace()
-            retval = cd.command_check_host(ctx)
-            assert retval == 0
-
-
-    @mock.patch('cephadm.find_executable', return_value='foo')
-    @mock.patch('cephadm.check_time_sync', return_value=True)
-    @mock.patch('cephadm.get_hostname', return_value='host.site')
-    def test_expect_hostname(self, find_executable, check_time_sync, get_hostname, caplog):
-        cd.logger = logger
-        ctx = cd.CephadmContext()
-        ctx.container_engine = mock_podman()
-        cd.command_check_host(ctx)
-
-        import pdb;pdb.set_trace()
-        caplog.set_level(logging.DEBUG)
-
-        ctx.expect_hostname = 'host.site'
-        cd.command_check_host(ctx)
-        assert 'matches what is expected' in caplog.text
-
-        '''
-        ctx.expect_hostname = 'host'
-        cd.command_check_host(ctx)
-        err = r'does not match expected hostname'
-        with pytest.raises(cd.Error, match=err):
-            cd.command_check_host(ctx)
-        '''
 
 class TestRmRepo:
 
