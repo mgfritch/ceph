@@ -2,6 +2,7 @@
 
 import errno
 import json
+import logging
 import mock
 import os
 import pytest
@@ -21,6 +22,8 @@ from .fixtures import (
     mock_podman,
     with_cephadm_ctx,
 )
+
+logger = logging.getLogger()
 
 with mock.patch('builtins.open', create=True):
     from importlib.machinery import SourceFileLoader
@@ -1291,6 +1294,28 @@ class TestCheckHost:
 
         ctx.container_engine = mock_docker()
         cd.command_check_host(ctx)
+
+    @mock.patch('cephadm.find_executable', return_value='foo')
+    @mock.patch('cephadm.check_time_sync', return_value=True)
+    @mock.patch('cephadm.get_hostname', return_value='host.site')
+    def test_expect_hostname(self, find_executable, check_time_sync, get_hostname, caplog):
+        cd.logger = logger
+        #import pdb;pdb.set_trace()
+        caplog.set_level(logging.INFO)
+
+        ctx = cd.CephadmContext()
+        ctx.container_engine = mock_podman()
+        cd.command_check_host(ctx)
+
+
+        ctx.expect_hostname = 'host.site'
+        cd.command_check_host(ctx)
+        assert 'matches what is expected' in caplog.text
+
+        ctx.expect_hostname = 'host'
+        err = r'does not match expected hostname'
+        with pytest.raises(cd.Error, match=err):
+            cd.command_check_host(ctx)
 
 
 class TestRmRepo:
