@@ -368,6 +368,14 @@ class TestDevice(object):
             with patch('builtins.open', mock_open(read_data=b'not a bluestore block device\n')):
                 assert not disk.has_bluestore_label
 
+    def test_is_ceph_rbd(self, device_info):
+        data = {"/dev/rbd0": {"foo": "bar"}}
+        lsblk = {"TYPE": "disk"}
+        device_info(devices=data,lsblk=lsblk)
+        disk = device.Device("/dev/rbd0")
+        assert not disk.available
+        assert "RBD device" in disk.rejected_reasons
+
 
 class TestDeviceEncryption(object):
 
