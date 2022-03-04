@@ -121,6 +121,7 @@ def with_cephadm_module(module_options=None, store=None):
         m.tkey = NamedTemporaryFile(prefix='test-cephadm-identity-')
 
         yield m
+        m.shutdown()
 
 
 def wait(m, c):
