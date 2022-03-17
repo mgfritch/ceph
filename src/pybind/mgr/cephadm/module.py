@@ -60,6 +60,7 @@ from .upgrade import CephadmUpgrade
 from .template import TemplateMgr
 from .utils import CEPH_IMAGE_TYPES, forall_hosts, cephadmNoImage
 from .configchecks import CephadmConfigChecks
+from .offline_watcher import OfflineHostWatcher
 
 try:
     import asyncssh
@@ -544,11 +545,15 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
         if self.use_agent:
             self.agent_helpers._apply_agent()
 
+        self.offline_watcher = OfflineHostWatcher(self)
+        self.offline_watcher.start()
+
     def shutdown(self) -> None:
         self.log.debug('shutdown')
         self._worker_pool.close()
         self._worker_pool.join()
         self.cherrypy_thread.shutdown()
+        self.offline_watcher.shutdown()
         self.run = False
         self.event.set()
 
@@ -773,6 +778,10 @@ class CephadmOrchestrator(orchestrator.Orchestrator, MgrModule,
         self.cache.update_host_daemons(host, dm)
         self.cache.save_host(host)
         return None
+
+    def update_watched_hosts(self) -> None:
+        # currently, we are watching hosts with nfs daemons
+        self.offline_watcher.set_hosts(list(set([d.hostname for d in self.cache.get_daemons_by_type('nfs') if d.hostname is not None])))
 
     def offline_hosts_remove(self, host: str) -> None:
         if host in self.offline_hosts:
