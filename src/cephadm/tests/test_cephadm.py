@@ -2582,3 +2582,23 @@ class TestRescan(fake_filesystem_unittest.TestCase):
         self.fs.create_file('/sys/class/scsi_host/host1/proc_name', contents='unknown')
         out = cd.command_rescan_disks(self.ctx)
         assert out.startswith('Ok. 2 adapters detected: 1 rescanned, 1 skipped, 0 failed')
+
+
+class TestRmCluster(object):
+
+    def test_force(self, logger, cephadm_fs):
+        fsid = '00000000-0000-0000-0000-0000deadbeef'
+
+        cmd = ['rm-cluster', '--force', '--fsid', fsid]
+        with with_cephadm_ctx(cmd) as ctx:
+            retval = cd.command_rm_cluster(ctx)
+            assert retval == 0
+            assert ctx.fsid == fsid
+
+        cmd = ['rm-cluster', '--fsid', fsid]
+        with with_cephadm_ctx(cmd) as ctx:
+            err = 'must pass --force'
+            with pytest.raises(cd.Error, match=err):
+                retval = cd.command_rm_cluster(ctx)
+                assert retval == 1
+                assert ctx.fsid == None

@@ -7286,6 +7286,7 @@ def command_rm_cluster(ctx):
             for n in range(0, len(files)):
                 if os.path.exists(files[n]):
                     os.remove(files[n])
+    return 0
 
 ##################################
 
