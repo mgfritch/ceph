@@ -7190,6 +7190,7 @@ def get_ceph_cluster_count(ctx: CephadmContext) -> int:
     return len([c for c in os.listdir(ctx.data_dir) if is_fsid(c)])
 
 
+@validate_fsid
 def command_rm_cluster(ctx):
     # type: (CephadmContext) -> None
     if not ctx.force:

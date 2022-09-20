@@ -2602,3 +2602,21 @@ class TestRmCluster(object):
                 retval = cd.command_rm_cluster(ctx)
                 assert retval == 1
                 assert ctx.fsid == None
+
+    @mock.patch('cephadm.logger')
+    def test_fsid(self, logger, cephadm_fs):
+        fsid = '00000000-0000-0000-0000-0000deadbeef'
+
+        cmd = ['rm-cluster', '--force', '--fsid', fsid]
+        with with_cephadm_ctx(cmd) as ctx:
+            retval = cd.command_rm_cluster(ctx)
+            assert retval == 0
+            assert ctx.fsid == fsid
+
+        cmd = ['rm-cluster', '--force', '--fsid', '00000000-0000-0000-0000-0000deadbeez']
+        with with_cephadm_ctx(cmd) as ctx:
+            err = 'not an fsid'
+            with pytest.raises(cd.Error, match=err):
+                retval = cd.command_rm_cluster(ctx)
+                assert retval == 1
+                assert ctx.fsid == None
