@@ -1253,7 +1253,7 @@ class TestBootstrap(object):
         ]
 
 
-###############################################3
+################################################
 
     def test_config(self, cephadm_fs):
         conf_file = 'foo'
@@ -1477,7 +1477,8 @@ class TestBootstrap(object):
 
 class TestShell(object):
 
-    def test_fsid(self, cephadm_fs):
+    @mock.patch('cephadm.logger')
+    def test_fsid(self, logger, cephadm_fs):
         fsid = '00000000-0000-0000-0000-0000deadbeef'
 
         cmd = ['shell', '--fsid', fsid]
@@ -2584,8 +2585,23 @@ class TestRescan(fake_filesystem_unittest.TestCase):
         assert out.startswith('Ok. 2 adapters detected: 1 rescanned, 1 skipped, 0 failed')
 
 
+
+
+'''
+        [mgfritch@mfritch7:~/src/github.com/mgfritch/ceph/src/cephadm] jjm-cephadm-tox-coverage(+2/-1)+* ± ./cephadm.py rm-cluster --help
+        usage: cephadm.py rm-cluster [-h] --fsid FSID [--force] [--keep-logs] [--zap-osds]
+
+        options:
+              -h, --help   show this help message and exit
+                --fsid FSID  cluster FSID
+                  --force      proceed, even though this may destroy valuable data
+                    --keep-logs  do not remove log files
+                      --zap-osds   zap OSD devices for this cluster
+                      '''
+
 class TestRmCluster(object):
 
+    @mock.patch('cephadm.logger')
     def test_force(self, logger, cephadm_fs):
         fsid = '00000000-0000-0000-0000-0000deadbeef'
 
